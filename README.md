@@ -20,6 +20,34 @@ HR 80        20:11        O2 95%
         |  (S tick)  |
 ```
 
+## Hardware — Instinct 2S (Surf Edition)
+
+| | |
+|---|---|
+| **CPU** | ARM Cortex-M4F @ ~200 MHz (exact clock not published by Garmin) |
+| **Flash** | 32 MB (firmware + apps + data share this) |
+| **RAM** | ~256 KB available to Connect IQ apps (heap-managed by the Monkey C runtime) |
+| **Display** | 156×156 px, monochrome MIP (Memory-in-Pixel), always-on, sunlight-readable |
+| **Sensors** | Barometric altimeter, 3-axis compass, wrist HR (Elevate v4), pulse-ox (SpO2), thermometer, accelerometer |
+| **GPS** | Multi-band (L1/L5) with SatIQ; typical first fix ~30 s cold, <5 s warm |
+| **Battery** | ~40 h GPS mode, ~28 days watch mode (per Garmin spec) |
+
+**Runtime memory budget for this face (estimated):**
+
+The Connect IQ VM reserves a fixed heap per app. For watch faces on the
+Instinct 2 family the limit is ~256 KB. Rough breakdown for UtilityFace:
+
+- VM + runtime overhead: ~80 KB
+- Compiled bytecode (`.prg`): ~12 KB
+- String/font data loaded at runtime: ~20 KB
+- Stack + local variables per `onUpdate` call: <1 KB
+- **Total estimated peak: ~115 KB** — comfortably inside the 256 KB limit,
+  leaving headroom for adding steps, stress, or body battery fields.
+
+`System.getSystemStats().usedMemory` / `.totalMemory` report live figures at
+runtime; call these in `onUpdate` and `dc.drawText` them temporarily to
+profile your own builds.
+
 ## Toolchain
 
 Garmin Connect IQ apps compile from **Monkey C** only. The SDK ships:
