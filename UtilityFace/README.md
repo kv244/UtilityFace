@@ -5,6 +5,8 @@ included, same hardware). Displays time, HR, SpO2, altitude, ambient temp,
 battery, BT status, static compass ring, and date in fixed screen positions —
 no menu diving.
 
+![Watch face running in simulator](output-emulator.png)
+
 ## Layout (156×156 instinct2s)
 
 ```
