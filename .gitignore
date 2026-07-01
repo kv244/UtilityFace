@@ -1,0 +1,4 @@
+*.prg
+*.iq
+bin/
+gen/

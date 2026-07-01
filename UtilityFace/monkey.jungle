@@ -1,0 +1,9 @@
+project.manifest = manifest.xml
+
+# Default source/resource paths apply to all targets in manifest.xml
+base.sourcePath = source
+base.resourcePath = resources
+
+# Per-device overrides go here if you later want different layouts
+# for instinct2 (176x176) vs instinct2s (156x156), e.g.:
+# instinct2s.resourcePath = resources;resources-156x156
