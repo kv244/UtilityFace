@@ -70,6 +70,12 @@ jobs:
           connect-iq-sdk-manager sdk set 9.2.0
           connect-iq-sdk-manager sdk current-path --bin >> "$GITHUB_PATH"
 
+      # monkeyc needs the target device's definition files, which the SDK
+      # doesn't bundle -- these are normally pulled once via the SDK Manager
+      # GUI locally (see README Setup), but CI starts from nothing each run.
+      - name: Download instinct2 device definition
+        run: connect-iq-sdk-manager device download -d instinct2
+
       - name: Restore developer signing key
         env:
           DEVELOPER_KEY_B64: ${{ secrets.CIQ_DEVELOPER_KEY_B64 }}
