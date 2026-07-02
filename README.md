@@ -98,23 +98,31 @@ $env:PATH = "C:\Program Files\Processing\app\resources\jdk\bin;$env:PATH"
 $sdk = "C:\Users\julia\AppData\Roaming\Garmin\ConnectIQ\Sdks\connectiq-sdk-win-9.2.0-2026-06-09-92a1605b2\bin"
 
 & "$sdk\monkeyc.bat" -l 3 -w -f monkey.jungle -d instinct2 `
-    -o utilityface.prg `
+    -o A1B2C3D4.PRG `
     -y "C:\Users\julia\AppData\Roaming\Garmin\ConnectIQ\developer_key.der"
 ```
 
 Flags: `-l 3` = strict type check, `-w` = show warnings.
+
+**Output filename**: Garmin names installed `.PRG` files on-device by an
+8-hex-digit app ID (e.g. `E6672407.PRG`). UtilityFace has no CIQ Store ID yet
+(unpublished), so the build uses `A1B2C3D4` — the first 8 hex characters of
+the manifest's `application id` UUID (`manifest.xml`) — as a stable stand-in
+that matches the same naming shape. See
+[REVERSE_ENGINEERING_A_PRG.md](REVERSE_ENGINEERING_A_PRG.md) for how that
+convention was identified.
 
 ## Run in simulator (CLI)
 
 ```powershell
 Start-Process "$sdk\simulator.exe"
 Start-Sleep -Seconds 5
-& "$sdk\monkeydo.bat" utilityface.prg instinct2
+& "$sdk\monkeydo.bat" A1B2C3D4.PRG instinct2
 ```
 
 ## Deploy to hardware
 
-Copy `utilityface.prg` to `GARMIN\Apps\` on the watch when connected via USB
+Copy `A1B2C3D4.PRG` to `GARMIN\Apps\` on the watch when connected via USB
 (mass storage mode), or push via Garmin Express / Connect Mobile if signed for
 distribution.
 
