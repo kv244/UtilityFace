@@ -16,6 +16,7 @@ import Toybox.Activity;
 class UtilityFaceView extends WatchUi.WatchFace {
 
     private var mIsSleeping as Boolean = false;
+    private var mBackground as WatchUi.BitmapResource?;
 
     function initialize() {
         WatchFace.initialize();
@@ -26,6 +27,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
     // depend on dc.getWidth()/getHeight(). Left empty here because all
     // layout is computed dynamically in onUpdate from the dc dimensions.
     function onLayout(dc as Graphics.Dc) as Void {
+        mBackground = WatchUi.loadResource(Rez.Drawables.Background) as WatchUi.BitmapResource;
     }
 
     // onShow fires every time this face becomes visible — on cold start and
@@ -56,8 +58,12 @@ class UtilityFaceView extends WatchUi.WatchFace {
     // WatchUi.requestUpdate() is invoked (or automatically after onExitSleep).
     // Always does a full clear + redraw of the whole screen.
     function onUpdate(dc as Graphics.Dc) as Void {
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
-        dc.clear();
+        if (mBackground != null) {
+            dc.drawBitmap(0, 0, mBackground);
+        } else {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+            dc.clear();
+        }
 
         var w = dc.getWidth();
         var h = dc.getHeight();
@@ -135,8 +141,12 @@ class UtilityFaceView extends WatchUi.WatchFace {
 
         // Erase just the seconds box, then redraw the new value.
         dc.setClip(x, y, boxW, boxH);
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-        dc.fillRectangle(x, y, boxW, boxH);
+        if (mBackground != null) {
+            dc.drawBitmap(0, 0, mBackground);
+        } else {
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+            dc.fillRectangle(x, y, boxW, boxH);
+        }
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, Graphics.FONT_XTINY, secStr, Graphics.TEXT_JUSTIFY_LEFT);
         dc.clearClip();
@@ -173,7 +183,6 @@ class UtilityFaceView extends WatchUi.WatchFace {
 
         // Static cardinal tick marks at N/E/S/W (degrees clockwise from north)
         var cardinalDegs = [0.0, 90.0, 180.0, 270.0] as Array<Float>;
-        var labels = ["N", "E", "S", "W"] as Array<String>;
         for (var i = 0; i < cardinalDegs.size(); i++) {
             var angle = (cardinalDegs[i] * Math.PI / 180.0) - headingRad - Math.PI / 2.0;
             var tickInner = r - 8;
@@ -181,14 +190,16 @@ class UtilityFaceView extends WatchUi.WatchFace {
             var y1 = cy + (tickInner * Math.sin(angle)).toNumber();
             var x2 = cx + (r * Math.cos(angle)).toNumber();
             var y2 = cy + (r * Math.sin(angle)).toNumber();
-            dc.drawLine(x1, y1, x2, y2);
 
-            // Draw label slightly inside the tick mark
-            var labelDist = r - 15;
-            var lx = cx + (labelDist * Math.cos(angle)).toNumber();
-            var ly = cy + (labelDist * Math.sin(angle)).toNumber();
-            dc.drawText(lx, ly - 7, Graphics.FONT_XTINY, labels[i], Graphics.TEXT_JUSTIFY_CENTER);
+            // Thicker tick line for North
+            if (i == 0) {
+                dc.setPenWidth(3);
+            } else {
+                dc.setPenWidth(1);
+            }
+            dc.drawLine(x1, y1, x2, y2);
         }
+        dc.setPenWidth(1); // Restore pen width
     }
 
     private function getHeading() as Float? {
@@ -254,7 +265,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
             }
         }
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(18, cy - 30, Graphics.FONT_SMALL,
+        dc.drawText(24, cy - 30, Graphics.FONT_SMALL,
             "O2 " + (spo2 != null ? (spo2 as Float).format("%.0f") + "%" : "--"), Graphics.TEXT_JUSTIFY_LEFT);
     }
 
@@ -291,7 +302,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
             }
         }
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(18, cy - 30, Graphics.FONT_SMALL,
+        dc.drawText(24, cy - 30, Graphics.FONT_SMALL,
             "HR " + (hr != null ? hr.toString() : "--"), Graphics.TEXT_JUSTIFY_LEFT);
     }
 
@@ -315,7 +326,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         // sample.data is a Float — format with "%.0f" to strip the decimal
         // places before appending the unit string.
-        dc.drawText(w - 18, cy - 30, Graphics.FONT_SMALL,
+        dc.drawText(w - 24, cy - 30, Graphics.FONT_SMALL,
             "O2 " + (spo2 != null ? (spo2 as Float).format("%.0f") + "%" : "--"), Graphics.TEXT_JUSTIFY_RIGHT);
     }
 
@@ -337,7 +348,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
             }
         }
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(18, cy + 6, Graphics.FONT_XTINY,
+        dc.drawText(24, cy + 6, Graphics.FONT_XTINY,
             "ALT " + (alt != null ? alt.format("%.0f") + "m" : "--"), Graphics.TEXT_JUSTIFY_LEFT);
 
         var temp = null;
@@ -350,7 +361,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
                 }
             }
         }
-        dc.drawText(w - 18, cy + 6, Graphics.FONT_XTINY,
+        dc.drawText(w - 24, cy + 6, Graphics.FONT_XTINY,
             "T " + (temp != null ? temp.format("%.0f") + "C" : "--"), Graphics.TEXT_JUSTIFY_RIGHT);
     }
 
@@ -364,11 +375,11 @@ class UtilityFaceView extends WatchUi.WatchFace {
         var y = cy + 25;
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(18, y, Graphics.FONT_XTINY,
+        dc.drawText(24, y, Graphics.FONT_XTINY,
             "BAT " + stats.battery.format("%d") + "%", Graphics.TEXT_JUSTIFY_LEFT);
 
         var btLabel = settings.phoneConnected ? "BT ON" : "BT --";
-        dc.drawText(w - 18, y, Graphics.FONT_XTINY, btLabel, Graphics.TEXT_JUSTIFY_RIGHT);
+        dc.drawText(w - 24, y, Graphics.FONT_XTINY, btLabel, Graphics.TEXT_JUSTIFY_RIGHT);
     }
 
     // Gregorian.info(moment, format) converts a Time.Moment (Unix-epoch-based

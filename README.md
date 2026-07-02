@@ -2,8 +2,9 @@
 
 Quadrant-layout watch face for Garmin Instinct 2S / 2 / 2X (Surf Edition
 included, same hardware). Displays time, HR, SpO2, altitude, ambient temp,
-battery, BT status, dynamic compass ring with cardinal labels, and date in
-fixed screen positions — no menu diving.
+battery, BT status, dynamic compass ring with a prominent North orientation tick, and date in
+fixed screen positions — no menu diving. Features an optimized, dithered stone-texture
+background image that preserves high contrast and text readability on 1-bit monochrome MIP screens.
 
 ![Watch face running in simulator](output-emulator.png)
 
