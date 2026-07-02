@@ -23,7 +23,17 @@ const int ledPin = LED_BUILTIN; // Onboard LED to indicate sync activity
 
 void setup() {
   Serial.begin(115200);
-  while (!Serial); // Wait for Serial monitor to open
+  // Wait for a Serial monitor, but only briefly: on native-USB boards
+  // (UNO R4 included), "while (!Serial)" blocks forever if nothing is
+  // listening on the USB port, which would keep this sketch stuck here
+  // -- and BLE.begin() below -- whenever it's run standalone (battery/
+  // wall power, no PC attached), which is the actual deployment target.
+  // Bounding the wait means logging works when a monitor is open, and
+  // the sketch still proceeds to advertise when one isn't.
+  unsigned long serialWaitStart = millis();
+  while (!Serial && (millis() - serialWaitStart < 3000)) {
+    // busy-wait up to 3s for a monitor to attach
+  }
 
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, LOW);

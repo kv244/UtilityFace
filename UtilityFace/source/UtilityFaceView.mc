@@ -428,7 +428,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
         }
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         drawIconValueLeft(dc, mIconAltitude, 24, cy + 6,
-            (alt != null ? alt.format("%.0f") + "m" : "--"));
+            (alt != null ? (alt as Float).format("%.0f") + "m" : "--"));
 
         var temp = null;
         if (SensorHistory has :getTemperatureHistory) {
@@ -441,7 +441,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
             }
         }
         drawIconValueRight(dc, mIconTemperature, w - 24, cy + 6,
-            (temp != null ? temp.format("%.0f") + "C" : "--"));
+            (temp != null ? (temp as Float).format("%.0f") + "C" : "--"));
     }
 
     // System.getSystemStats() returns device-level stats: battery (0–100 Float),

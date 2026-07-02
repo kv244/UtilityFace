@@ -38,26 +38,19 @@ class StepSyncBleDelegate extends BluetoothLowEnergy.BleDelegate {
         mScanning = false;
     }
 
+    // Matches on advertised name only -- deliberately not a "name, or
+    // failing that, service UUID" fallback. The watch's own pairing with
+    // the Garmin Connect Mobile phone app is a separate system-level BLE
+    // channel that this scan wouldn't see, but a UUID-only fallback would
+    // still happily pairDevice() on *any* nearby peripheral that happens
+    // to advertise a matching 128-bit UUID (coincidentally or otherwise).
+    // Exact name match is the only signal that's actually unambiguous.
     function onScanResults(scanResults as Iterator) as Void {
         for (var result = scanResults.next(); result != null; result = scanResults.next()) {
             if (result instanceof ScanResult) {
                 var name = result.getDeviceName();
-                var uuids = result.getServiceUuids();
-                var matched = false;
 
-                // Check name first, then fall back to service UUID match
                 if (name != null && name.equals("StepSyncArduino")) {
-                    matched = true;
-                } else {
-                    for (var uuid = uuids.next(); uuid != null; uuid = uuids.next()) {
-                        if (uuid.equals(SERVICE_UUID)) {
-                            matched = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (matched) {
                     stopScanning();
                     mDevice = BluetoothLowEnergy.pairDevice(result);
                     mStatus = "Connecting...";
@@ -114,8 +107,13 @@ class StepSyncBleDelegate extends BluetoothLowEnergy.BleDelegate {
         mStatus = "Syncing " + steps + "...";
         WatchUi.requestUpdate();
 
+        // ByteArray.encodeNumber's :endianness option defaults to
+        // Lang.ENDIAN_LITTLE per the SDK docs (Toybox.Lang.ByteArray), so
+        // this was already correct -- made explicit since the Arduino
+        // receiver's byte order is a wire-format contract worth not
+        // depending on an implicit SDK default for.
         var bytes = [0, 0, 0, 0]b;
-        bytes = bytes.encodeNumber(steps, Lang.NUMBER_FORMAT_UINT32, {});
+        bytes = bytes.encodeNumber(steps, Lang.NUMBER_FORMAT_UINT32, {:endianness => Lang.ENDIAN_LITTLE});
 
         try {
             characteristic.requestWrite(bytes, {:writeType => BluetoothLowEnergy.WRITE_TYPE_WITH_RESPONSE});
