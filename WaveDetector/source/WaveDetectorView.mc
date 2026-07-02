@@ -120,6 +120,14 @@ class WaveDetectorView extends WatchUi.View {
     function onLayout(dc as Graphics.Dc) as Void {
     }
 
+    // Stacks lines top-to-bottom using each font's real measured height
+    // instead of guessed pixel offsets -- fixed offsets assumed a specific
+    // screen center and a small gap around FONT_NUMBER_HOT (a large "hero
+    // number" font), which overlapped and mis-centered on real hardware.
+    // Also centers around the square drawable region (min of width/height)
+    // rather than dc.getHeight()/2, in case this device's canvas is taller
+    // than its round face to make room for a subscreen (see UtilityFace's
+    // onUpdate, which has the same consideration).
     function onUpdate(dc as Graphics.Dc) as Void {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
@@ -127,15 +135,30 @@ class WaveDetectorView extends WatchUi.View {
         var w = dc.getWidth();
         var h = dc.getHeight();
         var cx = w / 2;
-        var cy = h / 2;
+        var squareSize = (w < h ? w : h);
+        var cy = squareSize / 2;
 
-        dc.drawText(cx, cy - 60, Graphics.FONT_SMALL, "WAVES", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, cy - 40, Graphics.FONT_NUMBER_HOT, mWaveCount.toString(), Graphics.TEXT_JUSTIFY_CENTER);
+        var gap = 4;
+        var lines = [
+            ["WAVES", Graphics.FONT_SMALL],
+            [mWaveCount.toString(), Graphics.FONT_NUMBER_HOT],
+            [mListening ? "listening" : "stopped", Graphics.FONT_XTINY],
+            ["motion " + mEmaDeviation.format("%.0f"), Graphics.FONT_XTINY],
+            ["SELECT resets", Graphics.FONT_XTINY],
+        ];
 
-        var statusStr = mListening ? "listening" : "stopped";
-        dc.drawText(cx, cy + 30, Graphics.FONT_XTINY, statusStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, cy + 46, Graphics.FONT_XTINY, "motion " + mEmaDeviation.format("%.0f"), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, cy + 62, Graphics.FONT_XTINY, "SELECT resets", Graphics.TEXT_JUSTIFY_CENTER);
+        var totalHeight = 0;
+        for (var i = 0; i < lines.size(); i++) {
+            totalHeight += dc.getFontHeight(lines[i][1]);
+        }
+        totalHeight += gap * (lines.size() - 1);
+
+        var y = cy - (totalHeight / 2);
+        for (var i = 0; i < lines.size(); i++) {
+            var font = lines[i][1];
+            dc.drawText(cx, y, font, lines[i][0], Graphics.TEXT_JUSTIFY_CENTER);
+            y += dc.getFontHeight(font) + gap;
+        }
     }
 
 }

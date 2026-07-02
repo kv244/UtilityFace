@@ -176,6 +176,24 @@ no separate dev build with debug symbols:
     -y "C:\Users\julia\AppData\Roaming\Garmin\ConnectIQ\developer_key.der"
 ```
 
+**Run in simulator:**
+
+```powershell
+Start-Process "$sdk\simulator.exe"
+Start-Sleep -Seconds 5
+& "$sdk\monkeydo.bat" WaveDetector\B2C3D4E5.PRG instinct2
+```
+
+The simulator has no accelerometer input, so the motion reading stays at
+0 and no waves get counted — this only confirms the app launches and the
+sensor listener registers ("listening" on screen), not that the counting
+heuristic works. Press **SELECT** (the simulator's Enter key, or the
+watch's lower-left button) to reset the count to zero.
+
+**Deploy to hardware:** copy `B2C3D4E5.PRG` to `GARMIN\Apps\` the same
+way as `A1B2C3D4.PRG` above — this is the only way to actually see it
+respond to real motion.
+
 ## Known gaps / next steps
 
 - **GPS quality**: Removed (`Position.enableLocationEvents` is unavailable to
