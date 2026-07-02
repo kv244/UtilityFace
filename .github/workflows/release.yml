@@ -41,6 +41,24 @@ jobs:
       - name: Accept Connect IQ SDK license agreement
         run: connect-iq-sdk-manager agreement accept
 
+      # connect-iq-sdk-manager silently falls back to an interactive OAuth
+      # flow (opens a localhost callback server and waits forever) if either
+      # credential is missing -- fail fast instead of hanging the runner.
+      - name: Verify required secrets are set
+        env:
+          GARMIN_USERNAME: ${{ secrets.GARMIN_USERNAME }}
+          GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+          CIQ_DEVELOPER_KEY_B64: ${{ secrets.CIQ_DEVELOPER_KEY_B64 }}
+        run: |
+          missing=()
+          [ -z "$GARMIN_USERNAME" ] && missing+=(GARMIN_USERNAME)
+          [ -z "$GARMIN_PASSWORD" ] && missing+=(GARMIN_PASSWORD)
+          [ -z "$CIQ_DEVELOPER_KEY_B64" ] && missing+=(CIQ_DEVELOPER_KEY_B64)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing required repo secret(s): ${missing[*]}. Add them under Settings -> Secrets and variables -> Actions, then re-run."
+            exit 1
+          fi
+
       - name: Log in to Garmin
         env:
           GARMIN_USERNAME: ${{ secrets.GARMIN_USERNAME }}
