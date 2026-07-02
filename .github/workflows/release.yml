@@ -81,10 +81,13 @@ jobs:
           DEVELOPER_KEY_B64: ${{ secrets.CIQ_DEVELOPER_KEY_B64 }}
         run: echo "$DEVELOPER_KEY_B64" | base64 -d > "$RUNNER_TEMP/developer_key.der"
 
+      # -r strips debug info (Symbols section + embedded source paths) so the
+      # published release asset isn't a dev build -- see
+      # REVERSE_ENGINEERING_A_PRG.md for what that section contains.
       - name: Build A1B2C3D4.PRG
         working-directory: UtilityFace
         run: |
-          monkeyc -l 3 -w -f monkey.jungle -d instinct2 \
+          monkeyc -l 3 -w -r -f monkey.jungle -d instinct2 \
             -o A1B2C3D4.PRG \
             -y "$RUNNER_TEMP/developer_key.der"
 
