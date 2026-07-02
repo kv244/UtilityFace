@@ -1,5 +1,12 @@
 # UtilityFace — Instinct 2 Sensor Dashboard Watch Face
 
+[![Latest Release](https://img.shields.io/github/v/release/kv244/UtilityFace)](https://github.com/kv244/UtilityFace/releases/latest)
+
+> Curious how a compiled `.PRG` is put together? See
+> [REVERSE_ENGINEERING_A_PRG.md](REVERSE_ENGINEERING_A_PRG.md) for a
+> walkthrough of the Connect IQ binary format and a decompile of this
+> project's own build.
+
 Quadrant-layout watch face for Garmin Instinct 2S / 2 / 2X (Surf Edition
 included, same hardware). Displays time, HR, SpO2, altitude, ambient temp,
 battery, BT status, dynamic compass ring with a prominent North orientation tick, and date in
@@ -125,6 +132,26 @@ Start-Sleep -Seconds 5
 Copy `A1B2C3D4.PRG` to `GARMIN\Apps\` on the watch when connected via USB
 (mass storage mode), or push via Garmin Express / Connect Mobile if signed for
 distribution.
+
+## Releases (CI)
+
+[`.github/workflows/release.yml`](.github/workflows/release.yml) rebuilds
+`A1B2C3D4.PRG` with the real Connect IQ SDK on every push to `main` that
+touches source/resources/manifest/jungle, and — only if the build succeeds —
+publishes it as a GitHub Release asset (tag `vYYYY.MM.DD-<sha>`). It uses
+[connect-iq-sdk-manager-cli](https://github.com/lindell/connect-iq-sdk-manager-cli)
+to fetch the SDK headlessly, which requires two repo secrets to be set under
+*Settings → Secrets and variables → Actions* before it will run successfully:
+
+| Secret | Value |
+|---|---|
+| `GARMIN_USERNAME` / `GARMIN_PASSWORD` | Credentials for a Garmin account with SDK access — used only to download the SDK, same login the SDK Manager GUI asks for |
+| `CIQ_DEVELOPER_KEY_B64` | Your `developer_key.der` (see Setup below), base64-encoded: `[System.Convert]::ToBase64String([IO.File]::ReadAllBytes("developer_key.der"))` in PowerShell, or `base64 -w0 developer_key.der` on Linux/macOS |
+
+The workflow accepts Garmin's CONNECT IQ SDK License Agreement /
+Application Developer Agreement non-interactively on your behalf (the same
+one accepted once via the SDK Manager GUI locally) so the SDK can be
+downloaded in CI without a prompt.
 
 ## Permissions
 
