@@ -15,6 +15,16 @@ background image that preserves high contrast and text readability on 1-bit mono
 
 ![Watch face running in simulator](output-emulator.png)
 
+This repository also contains two standalone companion apps, each its own
+Connect IQ project (own manifest/jungle/source), not part of the watch
+face itself:
+
+- **[WaveDetector](WaveDetector)** — prototypes accelerometer-based
+  motion/wave detection (see [WaveDetector (companion app)](#wavedetector-companion-app) below).
+- **[StepSync](StepSync)** — syncs the daily step count over BLE to an
+  external receiver, e.g. an Arduino UNO R4 WiFi (see
+  [StepSync/README.md](StepSync/README.md)).
+
 ## Layout (176×176, top-right subscreen)
 
 ```
