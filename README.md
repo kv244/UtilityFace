@@ -33,17 +33,17 @@ HR 80        20:11        O2 95%
         |  (S tick)  |
 ```
 
-## Hardware — Instinct 2S (Surf Edition)
+## Hardware — Instinct 2 (Surf Edition)
 
 | | |
 |---|---|
 | **CPU** | ARM Cortex-M4F @ ~200 MHz (exact clock not published by Garmin) |
 | **Flash** | 32 MB (firmware + apps + data share this) |
 | **RAM** | ~256 KB available to Connect IQ apps (heap-managed by the Monkey C runtime) |
-| **Display** | 156×156 px, monochrome MIP (Memory-in-Pixel), always-on, sunlight-readable |
+| **Display** | 176×176 px, monochrome MIP (Memory-in-Pixel), always-on, sunlight-readable |
 | **Sensors** | Barometric altimeter, 3-axis compass, wrist HR (Elevate v4), pulse-ox (SpO2), thermometer, accelerometer |
 | **GPS** | Multi-band (L1/L5) with SatIQ; typical first fix ~30 s cold, <5 s warm |
-| **Battery** | ~40 h GPS mode, ~28 days watch mode (per Garmin spec) |
+| **Battery** | ~30 h GPS mode, ~28 days smartwatch mode (per Garmin spec) |
 
 **Runtime memory budget for this face (estimated):**
 
