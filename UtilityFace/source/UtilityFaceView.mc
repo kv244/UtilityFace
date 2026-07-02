@@ -94,36 +94,43 @@ class UtilityFaceView extends WatchUi.WatchFace {
             subscreen = WatchUi.getSubscreen();
         }
 
+        // drawCompassRing goes last in both branches: every text draw now
+        // paints an opaque black background (see drawIconValueLeft/Right),
+        // so anything drawn after the ring would erase whatever ring/tick
+        // pixels its background rectangle happens to cover. Drawing the
+        // ring last means nothing can paint over it, at the cost of the
+        // ring's own black-halo strokes potentially covering the outer
+        // edge of a text box if one ever reaches that far out (none do at
+        // the current 24px margins).
         if (subscreen != null) {
             var sub = subscreen as Graphics.BoundingBox;
-            drawCompassRing(dc, cx, cy, radius);
-            
             var cx_main = (sub.x as Number) / 2;
             drawTimeLeft(dc, cx_main);
-            
+
             if (!mIsSleeping) {
                 drawSecondsLeft(dc, cx_main);
             }
-            
+
             drawHeartRateSubscreen(dc, sub);
             drawSpO2Left(dc, cy, w);
-            
+
             drawAltitudeAndTemp(dc, cy, w);
             drawStatusRow(dc, cy, w);
             drawDate(dc, cx, cy);
-        } else {
             drawCompassRing(dc, cx, cy, radius);
+        } else {
             drawTime(dc, cx, h);
-            
+
             if (!mIsSleeping) {
                 drawSeconds(dc);
             }
-            
+
             drawHeartRate(dc, cy, w);
             drawSpO2(dc, cy, w);
             drawAltitudeAndTemp(dc, cy, w);
             drawStatusRow(dc, cy, w);
             drawDate(dc, cx, cy);
+            drawCompassRing(dc, cx, cy, radius);
         }
     }
 
@@ -315,9 +322,14 @@ class UtilityFaceView extends WatchUi.WatchFace {
             }
         }
         
+        // Opaque black text backgrounds (see drawIconValueLeft/Right comment)
+        // paint over whatever's underneath, including an adjacent text draw --
+        // these two lines need real clearance or the value's background
+        // erases the label above it. FONT_SMALL's line-height box is taller
+        // than it looks, so give this more room than seems necessary.
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
-        dc.drawText(cx, cy - 20, Graphics.FONT_XTINY, "HR", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, cy - 6, Graphics.FONT_SMALL, (hr != null ? hr.toString() : "--"), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, cy - 30, Graphics.FONT_XTINY, "HR", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, cy - 10, Graphics.FONT_SMALL, (hr != null ? hr.toString() : "--"), Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function drawSpO2Left(dc as Graphics.Dc, cy as Number, w as Number) as Void {

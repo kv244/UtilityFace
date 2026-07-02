@@ -59,11 +59,14 @@ without reconstructing control flow.
 ## Debug builds vs. release builds
 
 The Symbols section only exists if the app wasn't compiled with `-r`
-(`--release`, "strip debug information"). This project's documented build
-command (see [README.md](README.md)) does **not** pass `-r`, so
-`A1B2C3D4.PRG` is a dev build and ships a full Symbols section — 2,981
-entries, ~84 KB, more than the Code section itself. Rebuilding the identical
-source with `-r` added:
+(`--release`, "strip debug information"). This project's build command
+(see [README.md](README.md)) passes `-r`, so the `A1B2C3D4.PRG` that ends
+up in the repo today is a release build with no Symbols section — same
+convention as WaveDetector's `B2C3D4E5.PRG`. The walkthrough below instead
+uses a **dev build** (produced by temporarily dropping `-r`) specifically
+because that's what's needed to demonstrate what symbol resolution
+recovers — it ships a full Symbols section: 2,981 entries, ~84 KB, more
+than the Code section itself. Side by side, same source:
 
 ```
                       dev build (no -r)   release build (-r)
@@ -83,7 +86,11 @@ full local filesystem paths of every source file compiled in (see the
 `.PRG` built without `-r`, you're shipping your local username and directory
 layout inside it.
 
-## Walkthrough: decompiling `A1B2C3D4.PRG`
+## Walkthrough: decompiling a dev build of `A1B2C3D4.PRG`
+
+Built with `-r` dropped, purely so there's a Symbols section to walk
+through — the repo's actual `A1B2C3D4.PRG` won't reproduce this output
+(see above):
 
 ```
 python prg_inspect.py UtilityFace/A1B2C3D4.PRG

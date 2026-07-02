@@ -91,12 +91,18 @@ at `C:\Program Files\Processing\app\resources\jdk\bin` works fine).
 $env:PATH = "C:\Program Files\Processing\app\resources\jdk\bin;$env:PATH"
 $sdk = "C:\Users\julia\AppData\Roaming\Garmin\ConnectIQ\Sdks\connectiq-sdk-win-9.2.0-2026-06-09-92a1605b2\bin"
 
-& "$sdk\monkeyc.bat" -l 3 -w -f monkey.jungle -d instinct2 `
+& "$sdk\monkeyc.bat" -l 3 -w -r -f monkey.jungle -d instinct2 `
     -o A1B2C3D4.PRG `
     -y "C:\Users\julia\AppData\Roaming\Garmin\ConnectIQ\developer_key.der"
 ```
 
-Flags: `-l 3` = strict type check, `-w` = show warnings.
+Flags: `-l 3` = strict type check, `-w` = show warnings, `-r` = release
+build (strips the Symbols section and embedded source paths — see
+[REVERSE_ENGINEERING_A_PRG.md](REVERSE_ENGINEERING_A_PRG.md) for what that
+means concretely). The `A1B2C3D4.PRG` that ends up in the project
+directory is always this release build, same as CI's and WaveDetector's —
+drop `-r` locally if you need a debug build with a full symbol table for
+troubleshooting.
 
 **Output filename**: Garmin names installed `.PRG` files on-device by an
 8-hex-digit app ID (e.g. `E6672407.PRG`). UtilityFace has no CIQ Store ID yet

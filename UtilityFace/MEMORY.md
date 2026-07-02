@@ -80,6 +80,12 @@ PowerShell commands in README.md. CI mirrors this headlessly using
   if the build succeeds. Needs `GARMIN_USERNAME`, `GARMIN_PASSWORD`,
   `CIQ_DEVELOPER_KEY_B64` repo secrets — already configured, several green
   runs confirmed. Only builds/releases UtilityFace, not WaveDetector.
+- The README's local build command also passes `-r` now, same as CI and
+  WaveDetector — verified byte-identical section layout (no Symbols
+  section) between the local `UtilityFace/A1B2C3D4.PRG` and the one CI
+  publishes. Drop `-r` locally if a dev build with a symbol table is
+  needed for debugging (see `REVERSE_ENGINEERING_A_PRG.md`'s walkthrough,
+  which intentionally uses a dev build for exactly that reason).
 - Launcher icon is still the original placeholder (black circle, white "U").
 
 ## Next steps
