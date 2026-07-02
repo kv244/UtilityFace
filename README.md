@@ -2,12 +2,25 @@
 
 Quadrant-layout watch face for Garmin Instinct 2S / 2 / 2X (Surf Edition
 included, same hardware). Displays time, HR, SpO2, altitude, ambient temp,
-battery, BT status, static compass ring, and date in fixed screen positions —
-no menu diving.
+battery, BT status, dynamic compass ring with cardinal labels, and date in
+fixed screen positions — no menu diving.
 
 ![Watch face running in simulator](output-emulator.png)
 
-## Layout (156×156 instinct2s)
+## Layout (176×176 instinct2 with top-right subscreen)
+
+```
+        |  (N tick)  |
+O2 95%       12:52       [ HR 67 ]
+             :ss
+        |           |
+    ALT 1372m     T 21C
+    BAT 50%       BT ON
+         Wed 1 Jul
+        |  (S tick)  |
+```
+
+## Layout (156×156 instinct2s without subscreen)
 
 ```
         |  (N tick)  |
@@ -83,7 +96,7 @@ at `C:\Program Files\Processing\app\resources\jdk\bin` works fine).
 $env:PATH = "C:\Program Files\Processing\app\resources\jdk\bin;$env:PATH"
 $sdk = "C:\Users\julia\AppData\Roaming\Garmin\ConnectIQ\Sdks\connectiq-sdk-win-9.2.0-2026-06-09-92a1605b2\bin"
 
-& "$sdk\monkeyc.bat" -l 3 -w -f monkey.jungle -d instinct2s `
+& "$sdk\monkeyc.bat" -l 3 -w -f monkey.jungle -d instinct2 `
     -o utilityface.prg `
     -y "C:\Users\julia\AppData\Roaming\Garmin\ConnectIQ\developer_key.der"
 ```
@@ -95,7 +108,7 @@ Flags: `-l 3` = strict type check, `-w` = show warnings.
 ```powershell
 Start-Process "$sdk\simulator.exe"
 Start-Sleep -Seconds 5
-& "$sdk\monkeydo.bat" utilityface.prg instinct2s
+& "$sdk\monkeydo.bat" utilityface.prg instinct2
 ```
 
 ## Deploy to hardware
@@ -110,22 +123,11 @@ distribution.
 
 ## Known gaps / next steps
 
-- **Compass heading**: The ring shows static N/E/S/W tick marks only. Live
-  heading via `Sensor.getInfo().heading` requires the `Sensor` permission,
-  which in turn requires `Background` for watch face apps — adding `Background`
-  without proper `(:background)` annotations causes the compiler to treat the
-  entire app as a background process (no Graphics API access). Fix: add a
-  proper background service entry point annotated with `(:background)` and
-  keep the UI code annotated with `(:foreground)`.
 - **GPS quality**: Removed (`Position.enableLocationEvents` is unavailable to
   watch face app types). Re-adding requires the `Positioning` permission and
   routing through a background service.
-- **Launcher icon**: Placeholder scaled from 40×40; device expects 54×54.
-  Replace `resources/drawables/launcher_icon.png` with a 54×54 PNG before
-  publishing to the Connect IQ store.
 - **Accelerometer/gyro**: Not in `SensorHistory` at watch-face refresh rates.
   Continuous sampling needs `Sensor.registerSensorDataListener`, which belongs
   in an activity app context (e.g. a wave-detection app).
-- **Device variants**: Only `instinct2s` device image is currently downloaded.
-  Pull `instinct2` and `instinct2x` via SDK Manager to enable multi-target
-  builds and simulator testing for those variants.
+- **Device variants**: Pull `instinct2s` and `instinct2x` via SDK Manager to
+  enable multi-target builds and simulator testing for those variants.
