@@ -7,32 +7,19 @@
 > walkthrough of the Connect IQ binary format and a decompile of this
 > project's own build.
 
-Quadrant-layout watch face for Garmin Instinct 2S / 2 / 2X (Surf Edition
-included, same hardware). Displays time, HR, SpO2, altitude, ambient temp,
+Quadrant-layout watch face for Garmin Instinct 2 (Surf Edition included,
+same hardware). Displays time, HR, SpO2, altitude, ambient temp,
 battery, daily step count, dynamic compass ring with a prominent North orientation tick, and date in
 fixed screen positions — no menu diving. Features an optimized, dithered stone-texture
 background image that preserves high contrast and text readability on 1-bit monochrome MIP screens.
 
 ![Watch face running in simulator](output-emulator.png)
 
-## Layout (176×176 instinct2 with top-right subscreen)
+## Layout (176×176, top-right subscreen)
 
 ```
         |  (N tick)  |
 O2 95%       12:52       [ HR 67 ]
-             :ss
-        |           |
-    ALT 1372m     T 21C
-    BAT 50%    STEP 8214
-         Wed 1 Jul
-        |  (S tick)  |
-```
-
-## Layout (156×156 instinct2s without subscreen)
-
-```
-        |  (N tick)  |
-HR 80        20:11        O2 95%
              :ss
         |           |
     ALT 1372m     T 21C
@@ -84,7 +71,7 @@ at `C:\Program Files\Processing\app\resources\jdk\bin` works fine).
 ## Setup
 
 1. Install the Connect IQ SDK Manager from Garmin's developer site; pull the
-   SDK and at least the `instinct2s` device image through it.
+   SDK and at least the `instinct2` device image through it.
 2. Generate a developer signing key (required for every build, including
    local simulator runs):
    ```powershell
@@ -156,14 +143,35 @@ downloaded in CI without a prompt.
 ## Permissions
 
 - `SensorHistory` — HR, SpO2, elevation, temperature (last logged sample)
+- `Sensor` + `Background` — live compass heading, refreshed every few
+  minutes via `HeadingServiceDelegate`/`Background.registerForTemporalEvent`
+  (Garmin throttles the interval; this is not a continuous stream). Falls
+  back to `Activity.getActivityInfo().currentHeading` when no background
+  sample has landed yet.
+
+## WaveDetector (companion app)
+
+[`WaveDetector/`](WaveDetector) is a separate Connect IQ *app* (not a
+watch face) that prototypes accelerometer-based motion/wave detection via
+`Sensor.registerSensorDataListener` — a continuous high-rate listener watch
+faces can't hold onto. It's a threshold-crossing heuristic over a smoothed
+acceleration-magnitude signal, not a validated surf algorithm; see that
+project's source comments for the details and caveats.
+
+Its own manifest app UUID is `b2c3d4e5-...`, so following the same
+convention as `A1B2C3D4.PRG` above, its build output is named
+`B2C3D4E5.PRG`. Unlike UtilityFace it has no CI/release pipeline yet
+(see MEMORY.md), so its only build is a release (`-r`, stripped) one —
+no separate dev build with debug symbols:
+
+```powershell
+& "$sdk\monkeyc.bat" -l 3 -w -r -f WaveDetector\monkey.jungle -d instinct2 `
+    -o WaveDetector\B2C3D4E5.PRG `
+    -y "C:\Users\julia\AppData\Roaming\Garmin\ConnectIQ\developer_key.der"
+```
 
 ## Known gaps / next steps
 
 - **GPS quality**: Removed (`Position.enableLocationEvents` is unavailable to
   watch face app types). Re-adding requires the `Positioning` permission and
   routing through a background service.
-- **Accelerometer/gyro**: Not in `SensorHistory` at watch-face refresh rates.
-  Continuous sampling needs `Sensor.registerSensorDataListener`, which belongs
-  in an activity app context (e.g. a wave-detection app).
-- **Device variants**: Pull `instinct2s` and `instinct2x` via SDK Manager to
-  enable multi-target builds and simulator testing for those variants.

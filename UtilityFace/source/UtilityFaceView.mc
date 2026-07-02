@@ -8,11 +8,21 @@ import Toybox.ActivityMonitor;
 import Toybox.SensorHistory;
 import Toybox.Math;
 import Toybox.Activity;
+import Toybox.Application.Storage;
 
 // WatchFace is a specialised subclass of WatchUi.View. The OS gives it a
 // different lifecycle to ordinary app views: it runs continuously in the
 // background, receives a low-power (1 Hz) update budget, and can opt into
 // a per-second partial-redraw when the wrist is raised (high-power mode).
+//
+// disableBackgroundCheck: UtilityFaceApp is (:background)-annotated (it has
+// to be, to support HeadingServiceDelegate), which makes strict typecheck
+// validate everything reachable from it -- including this view, via
+// getInitialView() -- against the restricted background scope, where
+// Graphics/WatchUi APIs don't exist. This view is never actually
+// instantiated in that scope in practice, so disable that specific check
+// rather than the whole app's strict typecheck.
+(:typecheck(disableBackgroundCheck))
 class UtilityFaceView extends WatchUi.WatchFace {
 
     private var mIsSleeping as Boolean = false;
@@ -243,7 +253,23 @@ class UtilityFaceView extends WatchUi.WatchFace {
         dc.setPenWidth(1); // Restore pen width
     }
 
+    // Activity's heading is only populated during a tracked activity, which
+    // is most of the time null. HeadingServiceDelegate (see that file and
+    // UtilityFaceApp.getServiceDelegate/onBackgroundData) refreshes
+    // "backgroundHeading" in Storage every few minutes via a proper
+    // Background-permission service -- a plain Sensor.getInfo() call
+    // isn't allowed directly in onUpdate for a watchface app type (the
+    // manifest validator requires Background permission for the Sensor
+    // permission, which in turn requires the full ServiceDelegate
+    // architecture; see git history for the dead end that confirmed this).
+    // Prefer the background-refreshed value; fall back to Activity's live
+    // one when an activity happens to be recording.
     private function getHeading() as Float? {
+        var bg = Storage.getValue("backgroundHeading");
+        if (bg != null) {
+            return bg as Float;
+        }
+
         var activityInfo = Activity.getActivityInfo();
         if (activityInfo != null && activityInfo.currentHeading != null) {
             return activityInfo.currentHeading;

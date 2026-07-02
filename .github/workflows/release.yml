@@ -10,7 +10,6 @@ on:
     paths:
       - "UtilityFace/source/**"
       - "UtilityFace/resources/**"
-      - "UtilityFace/resources-instinct2s/**"
       - "UtilityFace/manifest.xml"
       - "UtilityFace/monkey.jungle"
       - ".github/workflows/release.yml"

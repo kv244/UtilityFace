@@ -8,14 +8,15 @@
         launcherIcon="@Drawables.LauncherIcon"
         minSdkVersion="3.2.0">
 
-        <!-- Instinct 2 family (regular / 2S / 2X, all editions incl. Surf) -->
+        <!-- Instinct 2 (Surf Edition included, same hardware) -->
         <iq:products>
             <iq:product id="instinct2" />
-            <iq:product id="instinct2x" />
         </iq:products>
 
         <iq:permissions>
             <iq:uses-permission id="SensorHistory" />
+            <iq:uses-permission id="Sensor" />
+            <iq:uses-permission id="Background" />
         </iq:permissions>
 
         <iq:languages>
