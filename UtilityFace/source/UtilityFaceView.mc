@@ -17,6 +17,10 @@ class UtilityFaceView extends WatchUi.WatchFace {
 
     private var mIsSleeping as Boolean = false;
     private var mBackground as WatchUi.BitmapResource?;
+    private var mIconAltitude as WatchUi.BitmapResource?;
+    private var mIconTemperature as WatchUi.BitmapResource?;
+    private var mIconSteps as WatchUi.BitmapResource?;
+    private var mIconBattery as WatchUi.BitmapResource?;
 
     function initialize() {
         WatchFace.initialize();
@@ -24,10 +28,14 @@ class UtilityFaceView extends WatchUi.WatchFace {
 
     // onLayout is called once after initialize(), before the first draw.
     // Use it to load bitmap resources or measure layout constants that
-    // depend on dc.getWidth()/getHeight(). Left empty here because all
-    // layout is computed dynamically in onUpdate from the dc dimensions.
+    // depend on dc.getWidth()/getHeight(). Status-row labels are drawn as
+    // small icons (see drawables.xml) instead of text prefixes.
     function onLayout(dc as Graphics.Dc) as Void {
         mBackground = WatchUi.loadResource(Rez.Drawables.Background) as WatchUi.BitmapResource;
+        mIconAltitude = WatchUi.loadResource(Rez.Drawables.IconAltitude) as WatchUi.BitmapResource;
+        mIconTemperature = WatchUi.loadResource(Rez.Drawables.IconTemperature) as WatchUi.BitmapResource;
+        mIconSteps = WatchUi.loadResource(Rez.Drawables.IconSteps) as WatchUi.BitmapResource;
+        mIconBattery = WatchUi.loadResource(Rez.Drawables.IconBattery) as WatchUi.BitmapResource;
     }
 
     // onShow fires every time this face becomes visible — on cold start and
@@ -147,7 +155,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
             dc.fillRectangle(x, y, boxW, boxH);
         }
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.drawText(x, y, Graphics.FONT_XTINY, secStr, Graphics.TEXT_JUSTIFY_LEFT);
         dc.clearClip();
     }
@@ -161,11 +169,33 @@ class UtilityFaceView extends WatchUi.WatchFace {
         var x = (w / 2) + 34;
         var y = 18;
 
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.drawText(x, y, Graphics.FONT_XTINY, secStr, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     // --- Drawing helpers -----------------------------------------------
+
+    // Draws a small icon followed by left-justified value text, icon's
+    // left edge pinned at x. Falls back to text-only if the icon failed
+    // to load (e.g. unsupported palette on some device/simulator combos).
+    private function drawIconValueLeft(dc as Graphics.Dc, icon as WatchUi.BitmapResource?, x as Number, y as Number, valueStr as String) as Void {
+        if (icon != null) {
+            dc.drawBitmap(x, y - 1, icon);
+            dc.drawText(x + icon.getWidth() + 3, y, Graphics.FONT_XTINY, valueStr, Graphics.TEXT_JUSTIFY_LEFT);
+        } else {
+            dc.drawText(x, y, Graphics.FONT_XTINY, valueStr, Graphics.TEXT_JUSTIFY_LEFT);
+        }
+    }
+
+    // Draws right-justified value text ending at x, with a small icon
+    // placed immediately to its left.
+    private function drawIconValueRight(dc as Graphics.Dc, icon as WatchUi.BitmapResource?, x as Number, y as Number, valueStr as String) as Void {
+        dc.drawText(x, y, Graphics.FONT_XTINY, valueStr, Graphics.TEXT_JUSTIFY_RIGHT);
+        if (icon != null) {
+            var textWidth = dc.getTextWidthInPixels(valueStr, Graphics.FONT_XTINY);
+            dc.drawBitmap(x - textWidth - icon.getWidth() - 3, y - 1, icon);
+        }
+    }
 
     // Draws the outer bezel circle and four cardinal tick marks (N/E/S/W).
     // dc.drawCircle(cx, cy, r) draws a circle outline — there is no filled
@@ -173,8 +203,16 @@ class UtilityFaceView extends WatchUi.WatchFace {
     // Live heading via Sensor.getInfo().heading requires the Sensor +
     // Background permissions and foreground/background annotations — see
     // README "Known gaps" for the upgrade path.
+    // The background is a bold two-tone graphic (see manyBg.png in the repo
+    // root) rather than an even, low-contrast texture, so a plain white
+    // stroke can land on a white region and disappear. Every stroke here is
+    // drawn twice — a wider black halo first, then the white line on top —
+    // so the ring and ticks stay visible regardless of what's underneath.
     private function drawCompassRing(dc as Graphics.Dc, cx as Number, cy as Number, r as Number) as Void {
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(3);
+        dc.drawCircle(cx, cy, r);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.setPenWidth(1);
         dc.drawCircle(cx, cy, r);
 
@@ -192,11 +230,14 @@ class UtilityFaceView extends WatchUi.WatchFace {
             var y2 = cy + (r * Math.sin(angle)).toNumber();
 
             // Thicker tick line for North
-            if (i == 0) {
-                dc.setPenWidth(3);
-            } else {
-                dc.setPenWidth(1);
-            }
+            var whiteWidth = (i == 0) ? 3 : 1;
+
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(whiteWidth + 2);
+            dc.drawLine(x1, y1, x2, y2);
+
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+            dc.setPenWidth(whiteWidth);
             dc.drawLine(x1, y1, x2, y2);
         }
         dc.setPenWidth(1); // Restore pen width
@@ -213,7 +254,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
     private function drawTimeLeft(dc as Graphics.Dc, cx_main as Number) as Void {
         var clock = System.getClockTime();
         var timeStr = Lang.format("$1$:$2$", [clock.hour.format("%02d"), clock.min.format("%02d")]);
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.drawText(cx_main, 14, Graphics.FONT_NUMBER_MEDIUM, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
@@ -226,7 +267,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
         var x = cx_main + (timeWidth / 2) + 4;
         var y = 18;
         
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.drawText(x, y, Graphics.FONT_XTINY, secStr, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
@@ -248,7 +289,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
             }
         }
         
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.drawText(cx, cy - 20, Graphics.FONT_XTINY, "HR", Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(cx, cy - 6, Graphics.FONT_SMALL, (hr != null ? hr.toString() : "--"), Graphics.TEXT_JUSTIFY_CENTER);
     }
@@ -264,7 +305,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
                 }
             }
         }
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.drawText(24, cy - 30, Graphics.FONT_SMALL,
             "O2 " + (spo2 != null ? (spo2 as Float).format("%.0f") + "%" : "--"), Graphics.TEXT_JUSTIFY_LEFT);
     }
@@ -277,7 +318,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
     private function drawTime(dc as Graphics.Dc, cx as Number, h as Number) as Void {
         var clock = System.getClockTime();
         var timeStr = Lang.format("$1$:$2$", [clock.hour.format("%02d"), clock.min.format("%02d")]);
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.drawText(cx, 14, Graphics.FONT_NUMBER_MEDIUM, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
@@ -301,7 +342,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
                 }
             }
         }
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.drawText(24, cy - 30, Graphics.FONT_SMALL,
             "HR " + (hr != null ? hr.toString() : "--"), Graphics.TEXT_JUSTIFY_LEFT);
     }
@@ -323,7 +364,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
                 }
             }
         }
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         // sample.data is a Float — format with "%.0f" to strip the decimal
         // places before appending the unit string.
         dc.drawText(w - 24, cy - 30, Graphics.FONT_SMALL,
@@ -347,9 +388,9 @@ class UtilityFaceView extends WatchUi.WatchFace {
                 }
             }
         }
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(24, cy + 6, Graphics.FONT_XTINY,
-            "ALT " + (alt != null ? alt.format("%.0f") + "m" : "--"), Graphics.TEXT_JUSTIFY_LEFT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        drawIconValueLeft(dc, mIconAltitude, 24, cy + 6,
+            (alt != null ? alt.format("%.0f") + "m" : "--"));
 
         var temp = null;
         if (SensorHistory has :getTemperatureHistory) {
@@ -361,25 +402,28 @@ class UtilityFaceView extends WatchUi.WatchFace {
                 }
             }
         }
-        dc.drawText(w - 24, cy + 6, Graphics.FONT_XTINY,
-            "T " + (temp != null ? temp.format("%.0f") + "C" : "--"), Graphics.TEXT_JUSTIFY_RIGHT);
+        drawIconValueRight(dc, mIconTemperature, w - 24, cy + 6,
+            (temp != null ? temp.format("%.0f") + "C" : "--"));
     }
 
     // System.getSystemStats() returns device-level stats: battery (0–100 Float),
-    // charging state, memory usage, etc. System.getDeviceSettings() returns
-    // user/device configuration including phoneConnected (Bluetooth link state).
-    // Both are cheap synchronous calls with no permission requirements.
+    // charging state, memory usage, etc. — a cheap synchronous call with no
+    // permission requirements. ActivityMonitor.getInfo().steps is the day's
+    // running step count, tracked on-watch and reset at midnight; also no
+    // extra permission beyond what's already declared.
     private function drawStatusRow(dc as Graphics.Dc, cy as Number, w as Number) as Void {
         var stats = System.getSystemStats();
-        var settings = System.getDeviceSettings();
         var y = cy + 25;
 
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(24, y, Graphics.FONT_XTINY,
-            "BAT " + stats.battery.format("%d") + "%", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        drawIconValueLeft(dc, mIconBattery, 24, y, stats.battery.format("%d") + "%");
 
-        var btLabel = settings.phoneConnected ? "BT ON" : "BT --";
-        dc.drawText(w - 24, y, Graphics.FONT_XTINY, btLabel, Graphics.TEXT_JUSTIFY_RIGHT);
+        var steps = null;
+        var info = ActivityMonitor.getInfo();
+        if (info != null && info.steps != null) {
+            steps = info.steps;
+        }
+        drawIconValueRight(dc, mIconSteps, w - 24, y, (steps != null ? steps.toString() : "--"));
     }
 
     // Gregorian.info(moment, format) converts a Time.Moment (Unix-epoch-based
@@ -389,7 +433,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
     private function drawDate(dc as Graphics.Dc, cx as Number, cy as Number) as Void {
         var now = Gregorian.info(Time.now(), Time.FORMAT_MEDIUM);
         var dateStr = Lang.format("$1$ $2$ $3$", [now.day_of_week, now.day, now.month]);
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.drawText(cx, cy + 44, Graphics.FONT_XTINY, dateStr, Graphics.TEXT_JUSTIFY_CENTER);
     }
 

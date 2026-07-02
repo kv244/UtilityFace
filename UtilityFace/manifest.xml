@@ -11,7 +11,6 @@
         <!-- Instinct 2 family (regular / 2S / 2X, all editions incl. Surf) -->
         <iq:products>
             <iq:product id="instinct2" />
-            <iq:product id="instinct2s" />
             <iq:product id="instinct2x" />
         </iq:products>
 
