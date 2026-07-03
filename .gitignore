@@ -2,3 +2,4 @@
 *.iq
 bin/
 gen/
+settings.local.json

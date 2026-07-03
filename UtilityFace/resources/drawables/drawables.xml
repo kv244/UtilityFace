@@ -1,8 +1,38 @@
 <drawables>
     <bitmap id="LauncherIcon" filename="launcher_icon.png" />
-    <bitmap id="Background" filename="background.png" />
     <bitmap id="IconAltitude" filename="icon_altitude.png" />
     <bitmap id="IconTemperature" filename="icon_temperature.png" />
     <bitmap id="IconSteps" filename="icon_steps.png" />
     <bitmap id="IconBattery" filename="icon_battery.png" />
+    <bitmap id="IconSyncTime" filename="icon_synctime.png" />
+
+    <!-- One pre-rotated background per hour (15 degrees apart, 360/24).
+         See UtilityFaceView.onLayout/drawBackground. Generated from the
+         original background.png by rotating around its own center and
+         re-thresholding to 1-bit; see git history for the generation
+         script if these ever need regenerating from a new source image. -->
+    <bitmap id="BackgroundH00" filename="bg_h00.png" />
+    <bitmap id="BackgroundH01" filename="bg_h01.png" />
+    <bitmap id="BackgroundH02" filename="bg_h02.png" />
+    <bitmap id="BackgroundH03" filename="bg_h03.png" />
+    <bitmap id="BackgroundH04" filename="bg_h04.png" />
+    <bitmap id="BackgroundH05" filename="bg_h05.png" />
+    <bitmap id="BackgroundH06" filename="bg_h06.png" />
+    <bitmap id="BackgroundH07" filename="bg_h07.png" />
+    <bitmap id="BackgroundH08" filename="bg_h08.png" />
+    <bitmap id="BackgroundH09" filename="bg_h09.png" />
+    <bitmap id="BackgroundH10" filename="bg_h10.png" />
+    <bitmap id="BackgroundH11" filename="bg_h11.png" />
+    <bitmap id="BackgroundH12" filename="bg_h12.png" />
+    <bitmap id="BackgroundH13" filename="bg_h13.png" />
+    <bitmap id="BackgroundH14" filename="bg_h14.png" />
+    <bitmap id="BackgroundH15" filename="bg_h15.png" />
+    <bitmap id="BackgroundH16" filename="bg_h16.png" />
+    <bitmap id="BackgroundH17" filename="bg_h17.png" />
+    <bitmap id="BackgroundH18" filename="bg_h18.png" />
+    <bitmap id="BackgroundH19" filename="bg_h19.png" />
+    <bitmap id="BackgroundH20" filename="bg_h20.png" />
+    <bitmap id="BackgroundH21" filename="bg_h21.png" />
+    <bitmap id="BackgroundH22" filename="bg_h22.png" />
+    <bitmap id="BackgroundH23" filename="bg_h23.png" />
 </drawables>

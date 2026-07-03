@@ -26,11 +26,34 @@ import Toybox.Application.Storage;
 class UtilityFaceView extends WatchUi.WatchFace {
 
     private var mIsSleeping as Boolean = false;
+    // One pre-rotated background per hour (15 degrees apart, 360/24 -- see
+    // drawables.xml). Real-time bitmap rotation (Dc.drawBitmap2 with a
+    // Graphics.AffineTransform) looked like the obvious approach, but it
+    // throws a runtime "Symbol Not Found" crash on this device/SDK despite
+    // being in the general API docs and passing a `has` guard at compile
+    // time -- confirmed by actually crashing the simulator, not assumed.
+    // Swapping between 24 pre-rendered bitmaps sidesteps that, but loading
+    // all 24 into memory at once in onLayout throws Out Of Memory (also
+    // confirmed by crashing, not assumed) -- ~256KB heap budget doesn't
+    // stretch to 24 resident decoded bitmaps. Only the current hour's
+    // bitmap is kept loaded; loadBackgroundForHour swaps it out lazily.
     private var mBackground as WatchUi.BitmapResource?;
+    private var mBackgroundHour as Number = -1;
+    private var mBackgroundIds as Array<ResourceId> = [
+        Rez.Drawables.BackgroundH00, Rez.Drawables.BackgroundH01, Rez.Drawables.BackgroundH02,
+        Rez.Drawables.BackgroundH03, Rez.Drawables.BackgroundH04, Rez.Drawables.BackgroundH05,
+        Rez.Drawables.BackgroundH06, Rez.Drawables.BackgroundH07, Rez.Drawables.BackgroundH08,
+        Rez.Drawables.BackgroundH09, Rez.Drawables.BackgroundH10, Rez.Drawables.BackgroundH11,
+        Rez.Drawables.BackgroundH12, Rez.Drawables.BackgroundH13, Rez.Drawables.BackgroundH14,
+        Rez.Drawables.BackgroundH15, Rez.Drawables.BackgroundH16, Rez.Drawables.BackgroundH17,
+        Rez.Drawables.BackgroundH18, Rez.Drawables.BackgroundH19, Rez.Drawables.BackgroundH20,
+        Rez.Drawables.BackgroundH21, Rez.Drawables.BackgroundH22, Rez.Drawables.BackgroundH23,
+    ];
     private var mIconAltitude as WatchUi.BitmapResource?;
     private var mIconTemperature as WatchUi.BitmapResource?;
     private var mIconSteps as WatchUi.BitmapResource?;
     private var mIconBattery as WatchUi.BitmapResource?;
+    private var mIconSyncTime as WatchUi.BitmapResource?;
 
     function initialize() {
         WatchFace.initialize();
@@ -41,11 +64,13 @@ class UtilityFaceView extends WatchUi.WatchFace {
     // depend on dc.getWidth()/getHeight(). Status-row labels are drawn as
     // small icons (see drawables.xml) instead of text prefixes.
     function onLayout(dc as Graphics.Dc) as Void {
-        mBackground = WatchUi.loadResource(Rez.Drawables.Background) as WatchUi.BitmapResource;
+        loadBackgroundForHour(System.getClockTime().hour);
+
         mIconAltitude = WatchUi.loadResource(Rez.Drawables.IconAltitude) as WatchUi.BitmapResource;
         mIconTemperature = WatchUi.loadResource(Rez.Drawables.IconTemperature) as WatchUi.BitmapResource;
         mIconSteps = WatchUi.loadResource(Rez.Drawables.IconSteps) as WatchUi.BitmapResource;
         mIconBattery = WatchUi.loadResource(Rez.Drawables.IconBattery) as WatchUi.BitmapResource;
+        mIconSyncTime = WatchUi.loadResource(Rez.Drawables.IconSyncTime) as WatchUi.BitmapResource;
     }
 
     // onShow fires every time this face becomes visible — on cold start and
@@ -76,12 +101,7 @@ class UtilityFaceView extends WatchUi.WatchFace {
     // WatchUi.requestUpdate() is invoked (or automatically after onExitSleep).
     // Always does a full clear + redraw of the whole screen.
     function onUpdate(dc as Graphics.Dc) as Void {
-        if (mBackground != null) {
-            dc.drawBitmap(0, 0, mBackground);
-        } else {
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
-            dc.clear();
-        }
+        drawBackground(dc);
 
         var w = dc.getWidth();
         var h = dc.getHeight();
@@ -164,14 +184,11 @@ class UtilityFaceView extends WatchUi.WatchFace {
         var boxW = (subscreen != null) ? 24 : 40;
         var boxH = 20;
 
-        // Erase just the seconds box, then redraw the new value.
+        // Erase just the seconds box, then redraw the new value. Must use
+        // the same rotated draw as onUpdate, or this patch shows a
+        // stale unrotated fragment of the background underneath the digits.
         dc.setClip(x, y, boxW, boxH);
-        if (mBackground != null) {
-            dc.drawBitmap(0, 0, mBackground);
-        } else {
-            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-            dc.fillRectangle(x, y, boxW, boxH);
-        }
+        drawBackground(dc);
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.drawText(x, y, Graphics.FONT_XTINY, secStr, Graphics.TEXT_JUSTIFY_LEFT);
         dc.clearClip();
@@ -191,6 +208,34 @@ class UtilityFaceView extends WatchUi.WatchFace {
     }
 
     // --- Drawing helpers -----------------------------------------------
+
+    // Picks the pre-rotated background matching the current hour and draws
+    // it plainly -- see mBackgrounds declaration for why this isn't done
+    // via a runtime rotation transform.
+    private function drawBackground(dc as Graphics.Dc) as Void {
+        loadBackgroundForHour(System.getClockTime().hour);
+
+        var background = mBackground;
+        if (background == null) {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+            dc.clear();
+            return;
+        }
+        dc.drawBitmap(0, 0, background);
+    }
+
+    // Swaps mBackground to the given hour's pre-rotated bitmap, but only
+    // if it isn't already loaded -- WatchUi.loadResource() decodes into
+    // memory, so this must not run on every single onUpdate/onPartialUpdate
+    // call (that's the whole reason it's lazy instead of preloading all 24
+    // in onLayout, which throws Out Of Memory -- see mBackground comment).
+    private function loadBackgroundForHour(hour as Number) as Void {
+        if (hour == mBackgroundHour && mBackground != null) {
+            return;
+        }
+        mBackgroundHour = hour;
+        mBackground = WatchUi.loadResource(mBackgroundIds[hour]) as WatchUi.BitmapResource;
+    }
 
     // Draws a small icon followed by left-justified value text, icon's
     // left edge pinned at x. Falls back to text-only if the icon failed
@@ -212,6 +257,27 @@ class UtilityFaceView extends WatchUi.WatchFace {
             var textWidth = dc.getTextWidthInPixels(valueStr, Graphics.FONT_XTINY);
             dc.drawBitmap(x - textWidth - icon.getWidth() - 3, y - 1, icon);
         }
+    }
+
+    // Shows when the background heading last actually refreshed (see
+    // HeadingServiceDelegate) -- otherwise there's no way to tell, since
+    // Garmin throttles the real wake interval and the screen doesn't
+    // redraw the instant new data lands. "--:--" if no background update
+    // has landed yet (e.g. right after install, before the first wake).
+    private function drawHeadingSyncTime(dc as Graphics.Dc, x as Number, y as Number) as Void {
+        var hour = Storage.getValue("backgroundHeadingHour");
+        var minute = Storage.getValue("backgroundHeadingMinute");
+        var timeStr = (hour != null && minute != null)
+            ? Lang.format("$1$:$2$", [(hour as Number).format("%02d"), (minute as Number).format("%02d")])
+            : "--:--";
+
+        var drawX = x;
+        var icon = mIconSyncTime;
+        if (icon != null) {
+            dc.drawBitmap(drawX, y - 1, icon);
+            drawX += icon.getWidth() + 3;
+        }
+        dc.drawText(drawX, y, Graphics.FONT_XTINY, timeStr, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     // Draws the outer bezel circle and four cardinal tick marks (N/E/S/W).
@@ -343,9 +409,17 @@ class UtilityFaceView extends WatchUi.WatchFace {
                 }
             }
         }
+        var o2Str = "O2 " + (spo2 != null ? (spo2 as Float).format("%.0f") + "%" : "--");
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
-        dc.drawText(24, cy - 30, Graphics.FONT_SMALL,
-            "O2 " + (spo2 != null ? (spo2 as Float).format("%.0f") + "%" : "--"), Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(24, cy - 30, Graphics.FONT_SMALL, o2Str, Graphics.TEXT_JUSTIFY_LEFT);
+
+        // Only the subscreen layout has room for this: HR lives in its own
+        // circular badge here rather than inline on this row, so there's
+        // space after O2 for it. The non-subscreen layout puts "HR xx" at
+        // x=24 on this same row, leaving essentially no gap before O2 --
+        // it wouldn't fit there without overlapping, so it's subscreen-only.
+        var o2Width = dc.getTextWidthInPixels(o2Str, Graphics.FONT_SMALL);
+        drawHeadingSyncTime(dc, 24 + o2Width + 6, cy - 30);
     }
 
     // System.getClockTime() returns a ClockTime struct (hour, min, sec).

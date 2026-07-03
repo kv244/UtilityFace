@@ -42,6 +42,42 @@ PowerShell commands in README.md. CI mirrors this headlessly using
   permission alongside `Sensor`), and getting the annotations right took
   three iterations — see git history / PR discussion for the exact
   compiler errors if this needs touching again.
+- **Heading refresh is now visible on screen**, next to O2 (subscreen
+  layout only — the non-subscreen layout has "HR xx" inline at x=24 on
+  the same row with essentially no gap before O2, doesn't fit there).
+  Real motivation: there was previously no way to tell when the
+  background heading last actually updated, since Garmin throttles the
+  wake interval and the screen doesn't redraw the instant new data
+  lands. `HeadingServiceDelegate.onTemporalEvent()` now captures
+  `System.getClockTime()` at the moment it reads the sensor (not in
+  `onBackgroundData`, which can be delayed if the watch face isn't
+  active when the background slice finishes) and bundles
+  `{"heading", "hour", "minute"}` through `Background.exit()`.
+  `onBackgroundData` unpacks and stores all three under separate
+  `Storage` keys. `drawHeadingSyncTime` in the view draws a small "+"
+  icon (`icon_synctime.png`) + "HH:MM", or "--:--" before the first
+  background wake ever lands.
+  **Real bug found and fixed**: the payload dictionary originally used
+  Symbol keys (`:heading`, `:hour`, `:minute`), which type-check fine as
+  `Application.PropertyKeyType` but crashed `Background.exit()` at
+  runtime every single time with `Unexpected Type Error: Failed invoking
+  <symbol>` — silently, since a background-slice crash doesn't surface
+  as an app crash, it just means `onBackgroundData` never runs. Root
+  cause confirmed (not guessed) by building a temporary debug build with
+  `System.println` tracing at every step, driving the simulator's
+  "Background Events" dialog via the raw Win32 menu API
+  (`GetMenu`/`GetSubMenu`/`WM_COMMAND`, then `BM_CLICK` on the dialog's
+  OK button — far more reliable than UI Automation clicks for this
+  simulator), and reading the symbolicated stack trace, which pointed
+  straight at the `Background.exit(payload)` line. `Background.exit()`'s
+  own doc comment whitelists String/Number/Float/Boolean/Char/Long/
+  Double/Array/Dictionary for the data it carries across the background/
+  foreground boundary — Symbol isn't on that list, even though it's a
+  valid `Application.PropertyKeyType` at compile time. Switched all three
+  keys to Strings (`"heading"`, `"hour"`, `"minute"`) in both
+  `HeadingServiceDelegate.onTemporalEvent` and
+  `UtilityFaceApp.onBackgroundData`, rebuilt, retriggered a background
+  event, and confirmed a real `HH:MM` now renders in place of "--:--".
 - **WaveDetector**: a separate companion project at `../WaveDetector`
   (sibling to this folder, its own manifest/jungle/source), build output
   named `B2C3D4E5.PRG` (first 8 hex chars of its own manifest app UUID,
@@ -60,11 +96,33 @@ PowerShell commands in README.md. CI mirrors this headlessly using
   "listening" + live magnitude readout); did not verify actual wave
   counting against real motion (simulator has no accelerometer input
   device).
-- Background (`resources/drawables/background.png`) is a hand-picked
-  176×176 1-bit crop from `manyBg.png` (an untracked 2048×2048 spritesheet
-  of bold B&W geometric art — not committed, unused by the build), chosen
-  by scoring candidate crops against where each text label/icon/the
-  compass ring actually renders on screen.
+- Background is a hand-picked 176×176 1-bit crop from `manyBg.png` (an
+  untracked 2048×2048 spritesheet of bold B&W geometric art — not
+  committed, unused by the build), chosen by scoring candidate crops
+  against where each text label/icon/the compass ring actually renders on
+  screen.
+- **Background now rotates**: one full 360° turn per day, 15°/hour.
+  `resources/drawables/bg_h00.png`..`bg_h23.png` are 24 pre-rotated
+  variants (generated from the original background via PIL, rotated
+  around center, re-thresholded to 1-bit -- `background.png` itself is
+  gone, superseded by `bg_h00.png` which is pixel-identical to it).
+  `UtilityFaceView.loadBackgroundForHour` swaps `mBackground` to the
+  current hour's variant, but only reloads when the hour actually
+  changes. Two real dead ends got hit and confirmed by crashing the
+  simulator (not assumed) before landing here:
+  1. `Dc.drawBitmap2` + `Graphics.AffineTransform` (real-time rotation of
+     a single bitmap) is documented in the general Toybox API but throws
+     a runtime "Symbol Not Found" crash on this device/SDK -- a `has`
+     guard around it compiles fine and correctly detects the gap
+     (confirmed it doesn't get compiled away), but the underlying
+     capability just isn't there.
+  2. Preloading all 24 pre-rotated bitmaps in `onLayout` throws "Out Of
+     Memory" -- decoded bitmaps are expensive enough that the ~256KB
+     heap doesn't stretch to 24 resident copies. Only ever keep one
+     loaded.
+  Verified by comparing a debug build that draws background-only against
+  the pre-generated reference PNG for the current hour -- exact shape/
+  position match, not just "looks rotated".
 - Legibility fix: every `drawText` call fills a solid black background
   (not transparent), and the compass ring/ticks draw a black halo pass
   before the white stroke. Needed because the background has large

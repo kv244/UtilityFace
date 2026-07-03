@@ -10,8 +10,10 @@
 Quadrant-layout watch face for Garmin Instinct 2 (Surf Edition included,
 same hardware). Displays time, HR, SpO2, altitude, ambient temp,
 battery, daily step count, dynamic compass ring with a prominent North orientation tick, and date in
-fixed screen positions — no menu diving. Features an optimized, dithered stone-texture
-background image that preserves high contrast and text readability on 1-bit monochrome MIP screens.
+fixed screen positions — no menu diving. The geometric background rotates
+15° every hour, completing a full turn once a day, and every UI element
+keeps a solid black backing so it stays legible on 1-bit monochrome MIP
+screens no matter what the background is doing underneath it.
 
 ![Watch face running in simulator](output-emulator.png)
 

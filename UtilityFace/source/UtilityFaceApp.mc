@@ -68,16 +68,19 @@ class UtilityFaceApp extends Application.AppBase {
     }
 
     // Called once the background slice finishes and calls
-    // Background.exit(data). 'data' is whatever onTemporalEvent() passed --
-    // a Float heading in radians, or null if unavailable. Just persist it;
-    // no WatchUi call here (this method is typechecked against the
-    // background slice too, where WatchUi isn't available) -- the next
-    // regular onUpdate (at most a minute away) picks up the new value.
+    // Background.exit(data). 'data' is the {"heading", "hour", "minute"}
+    // dictionary HeadingServiceDelegate.onTemporalEvent() built (String
+    // keys, not Symbols -- see the comment there). Just persist it; no
+    // WatchUi call here (this method is typechecked against the background
+    // slice too, where WatchUi isn't available) -- the next regular
+    // onUpdate (at most a minute away) picks up the new values.
     function onBackgroundData(data) as Void {
-        // HeadingServiceDelegate only ever passes a Float heading or null,
-        // but Application.PersistableType and Storage.ValueType are
-        // separate (overlapping) union types under strict typecheck.
-        Storage.setValue("backgroundHeading", data as Storage.ValueType);
+        // Application.PersistableType and Storage.ValueType are separate
+        // (overlapping) union types under strict typecheck, hence the casts.
+        var result = data as Dictionary;
+        Storage.setValue("backgroundHeading", result["heading"] as Storage.ValueType);
+        Storage.setValue("backgroundHeadingHour", result["hour"] as Storage.ValueType);
+        Storage.setValue("backgroundHeadingMinute", result["minute"] as Storage.ValueType);
     }
 
 }
