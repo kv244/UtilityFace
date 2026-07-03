@@ -1,9 +1,11 @@
 name: Build and release PRG
 
-# Builds the watch face with the real Connect IQ SDK on every push to main
-# that touches build inputs, and — only if the compile succeeds — publishes
-# the resulting .PRG as a GitHub Release asset. See REVERSE_ENGINEERING_A_PRG.md
-# for background on the .PRG format and the A1B2C3D4.PRG naming convention.
+# Builds all three Connect IQ projects (UtilityFace, WaveDetector, StepSync)
+# with the real Connect IQ SDK, plus the StepSync Arduino receiver sketch,
+# on every push to main that touches any of their build inputs -- and, only
+# if every build succeeds, publishes all four artifacts as GitHub Release
+# assets. See REVERSE_ENGINEERING_A_PRG.md for background on the .PRG format
+# and the <8-hex-digit-app-id>.PRG naming convention.
 on:
   push:
     branches: [main]
@@ -12,6 +14,15 @@ on:
       - "UtilityFace/resources/**"
       - "UtilityFace/manifest.xml"
       - "UtilityFace/monkey.jungle"
+      - "WaveDetector/source/**"
+      - "WaveDetector/resources/**"
+      - "WaveDetector/manifest.xml"
+      - "WaveDetector/monkey.jungle"
+      - "StepSync/source/**"
+      - "StepSync/resources/**"
+      - "StepSync/manifest.xml"
+      - "StepSync/monkey.jungle"
+      - "arduino/StepSyncReceiver/**"
       - ".github/workflows/release.yml"
   workflow_dispatch: {}
 
@@ -82,13 +93,46 @@ jobs:
 
       # -r strips debug info (Symbols section + embedded source paths) so the
       # published release asset isn't a dev build -- see
-      # REVERSE_ENGINEERING_A_PRG.md for what that section contains.
-      - name: Build A1B2C3D4.PRG
+      # REVERSE_ENGINEERING_A_PRG.md for what that section contains. All
+      # three Connect IQ projects target the same instinct2 device, so the
+      # single device-definition download above covers all of them.
+      - name: Build A1B2C3D4.PRG (UtilityFace)
         working-directory: UtilityFace
         run: |
           monkeyc -l 3 -w -r -f monkey.jungle -d instinct2 \
             -o A1B2C3D4.PRG \
             -y "$RUNNER_TEMP/developer_key.der"
+
+      - name: Build B2C3D4E5.PRG (WaveDetector)
+        working-directory: WaveDetector
+        run: |
+          monkeyc -l 3 -w -r -f monkey.jungle -d instinct2 \
+            -o B2C3D4E5.PRG \
+            -y "$RUNNER_TEMP/developer_key.der"
+
+      - name: Build C2D3E4F5.PRG (StepSync)
+        working-directory: StepSync
+        run: |
+          monkeyc -l 3 -w -r -f monkey.jungle -d instinct2 \
+            -o C2D3E4F5.PRG \
+            -y "$RUNNER_TEMP/developer_key.der"
+
+      - name: Install Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Compile StepSync Arduino receiver
+        run: |
+          arduino-cli core update-index --additional-urls https://downloads.arduino.cc/packages/package_index.json
+          arduino-cli core install arduino:renesas_uno --additional-urls https://downloads.arduino.cc/packages/package_index.json
+          arduino-cli lib install ArduinoBLE
+          arduino-cli compile --fqbn arduino:renesas_uno:unor4wifi \
+            --output-dir "$RUNNER_TEMP/arduino-build" \
+            arduino/StepSyncReceiver
+
+      - name: Package Arduino build artifact
+        run: |
+          cd "$RUNNER_TEMP/arduino-build"
+          zip -r "$GITHUB_WORKSPACE/StepSyncReceiver-arduino.zip" .
 
       - name: Compute release tag
         id: tag
@@ -100,4 +144,8 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: UtilityFace ${{ steps.tag.outputs.tag }}
           generate_release_notes: true
-          files: UtilityFace/A1B2C3D4.PRG
+          files: |
+            UtilityFace/A1B2C3D4.PRG
+            WaveDetector/B2C3D4E5.PRG
+            StepSync/C2D3E4F5.PRG
+            StepSyncReceiver-arduino.zip
